@@ -12,7 +12,7 @@ import sqlite3
 import json
 
 # --- CẤU HÌNH TRANG ---
-st.set_page_config(page_title="Hệ thống Quản lý Điểm SV", layout="wide")
+st.set_page_config(page_title="Hệ thống Quản lý Điểm QT SV", page_icon="📝", layout="wide")
 DB_FILE = "score_storage.db"
 
 # --- HÀM HỖ TRỢ DATABASE (BỔ SUNG) ---
@@ -179,7 +179,8 @@ data_5 = load_from_storage("data_5")
 data_6 = load_from_storage("data_6")
 
 if role == "👨‍🏫 Giảng viên":
-    st.header("👨‍🏫 Quản lý Dữ liệu (Giảng viên)")
+    st.header("👨‍🏫 Quản lý Điểm quá trình (Giảng viên)")
+    st.markdown("##### === Triệu Kim Lanh ===")
     
     with st.expander("🔗 Cấu hình nguồn dữ liệu từ Google Sheets", expanded=True):
         st.info("Nhấn nút bên dưới để đồng bộ dữ liệu mới nhất.")
