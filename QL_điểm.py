@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri May  1 18:03:46 2026
+
+@author: trieukimlanh
+"""
+# streamlit run "/Users/trieukimlanh/Library/CloudStorage/GoogleDrive-lanhtk@hub.edu.vn/My Drive/Spyder/app/Báo điểm GK/QL_điểm.py"
+import streamlit as st
+import pandas as pd
+import sqlite3
+import json
+
+# --- CẤU HÌNH TRANG ---
+st.set_page_config(page_title="Hệ thống Quản lý Điểm SV", layout="wide")
+DB_FILE = "score_storage.db"
+
+# --- HÀM HỖ TRỢ DATABASE (BỔ SUNG) ---
+def init_db():
+    """Khởi tạo database và bảng lưu trữ"""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS score_data (
+            key TEXT PRIMARY KEY, 
+            json_content TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_to_storage(key, df):
+    """Lưu DataFrame vào Database dưới dạng JSON"""
+    if df is not None:
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        # ĐỔI THÀNH orient='records' để bảo toàn dữ liệu từng hàng
+        json_str = df.to_json(orient='records', force_ascii=False)
+        c.execute("INSERT OR REPLACE INTO score_data (key, json_content) VALUES (?, ?)", (key, json_str))
+        conn.commit()
+        conn.close()
+
+def load_from_storage(key):
+    """Tải dữ liệu từ Database lên thành DataFrame"""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        df_json = pd.read_sql_query("SELECT json_content FROM score_data WHERE key=?", conn, params=(key,))
+        conn.close()
+        if not df_json.empty:
+            # ĐỔI THÀNH orient='records'
+            return pd.read_json(df_json.iloc[0]['json_content'], orient='records')
+    except:
+        pass
+    return None
+
+# --- HÀM HỖ TRỢ GOOGLE SHEETS (GIỮ NGUYÊN) ---
+def get_csv_url(gsheet_url):
+    try:
+        if "docs.google.com" not in gsheet_url: return gsheet_url
+        sheet_id = gsheet_url.split("/d/")[1].split("/")[0]
+        gid = "0"
+        if "gid=" in gsheet_url:
+            gid = gsheet_url.split("gid=")[-1].split("&")[0]
+        return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+    except: return gsheet_url
+
+def load_data(url):
+    csv_url = get_csv_url(url)
+    try:
+        df = pd.read_csv(csv_url, engine='python', on_bad_lines='skip')
+        df.columns = [str(c).strip() for c in df.columns]
+
+        # 🔥 THÊM ĐOẠN NÀY
+        for col in df.columns:
+            df[col] = df[col].astype(str).str.strip()
+        return df
+    except Exception as e:
+        st.error(f"Không thể tải dữ liệu: {e}")
+        return None
+
+def normalize_mssv(x):
+    if pd.isna(x):
+        return ""
+    
+    x = str(x).strip()
+    
+    # bỏ .0 nếu có
+    if x.endswith(".0"):
+        x = x[:-2]
+    
+    # 🔥 QUAN TRỌNG: bỏ số 0 đầu
+    x = x.lstrip("0")
+    
+    return x
+
+
+def find_student_row(df, mssv):
+    if df is None or df.empty:
+        return None
+    
+    id_col = None
+    for col in df.columns:
+        col_norm = str(col).upper().replace(" ", "")
+        
+        if any(x in col_norm for x in ["MSSV", "MASV", "SV"]):
+            id_col = col
+            break
+
+    # 🔥 thêm xử lý cho "Mã SV"
+    if id_col is None:
+        for col in df.columns:
+            col_norm = str(col).upper()
+            if "SV" in col_norm and "LỚP" not in col_norm:
+                id_col = col
+                break
+
+    if id_col is None:
+        st.error("❌ Không tìm thấy cột MSSV")
+        return None
+
+    target = normalize_mssv(mssv)
+
+    df[id_col] = df[id_col].apply(normalize_mssv)
+
+    res = df[df[id_col] == target]
+
+    return res if not res.empty else None
+
+
+
+# --- GIAO DIỆN CHÍNH ---
+init_db()
+
+# PHẦN 1: XỬ LÝ PHÂN QUYỀN & URL PARAMS (GIỮ NGUYÊN)
+query_params = st.query_params
+is_student_link = query_params.get("role") == "student"
+
+if is_student_link:
+    role = "🧑‍🎓 Sinh viên"
+    st.markdown("""<style>[data-testid="stSidebar"] {display: none;} section[data-testid="stSidebar"] {width: 0px;}</style>""", unsafe_allow_html=True)
+else:
+    st.sidebar.title("🔐 Hệ thống Quản trị")
+    role = st.sidebar.radio("Chọn vai trò:", ["👨‍🏫 Giảng viên", "🧑‍🎓 Sinh viên"])
+
+# PHẦN 2: LOGIC KIỂM TRA MẬT KHẨU (GIỮ NGUYÊN)
+if role == "👨‍🏫 Giảng viên":
+    st.sidebar.markdown("---")
+    pwd = st.sidebar.text_input("Nhập mật khẩu quản lý:", type="password")
+    if pwd != "admin123":
+        if pwd != "": st.sidebar.error("❌ Sai mật khẩu")
+        else: st.info("🔑 Vui lòng nhập mật khẩu ở menu bên trái để truy cập quản trị.")
+        st.stop()
+
+    st.sidebar.success("✅ Đã xác thực")
+    if st.sidebar.button("🗑️ Xóa toàn bộ Database"):
+        conn = sqlite3.connect(DB_FILE)
+        conn.execute("DELETE FROM score_data")
+        conn.commit()
+        conn.close()
+        st.rerun()
+
+# PHẦN 3: GIAO DIỆN CHÍNH
+# Tải dữ liệu từ DB lên để sử dụng
+# PHẦN 3: GIAO DIỆN CHÍNH
+# --- CẤU HÌNH LINK CỐ ĐỊNH TẠI ĐÂY ---
+LINK_TT = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=955190676#gid=955190676"
+LINK_DD = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=246423748#gid=246423748"
+LINK_QT = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=347549665#gid=347549665"
+LINK_4 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1724010901#gid=1724010901"
+LINK_5 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1112987460#gid=1112987460"
+LINK_6 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=250285587#gid=250285587"
+
+# Tải dữ liệu từ DB lên để sử dụng
+data_tt = load_from_storage("data_tt")
+data_dd = load_from_storage("data_dd")
+data_qt = load_from_storage("data_qt")
+data_4 = load_from_storage("data_4")
+data_5 = load_from_storage("data_5")
+data_6 = load_from_storage("data_6")
+
+if role == "👨‍🏫 Giảng viên":
+    st.header("👨‍🏫 Quản lý Dữ liệu (Giảng viên)")
+    
+    with st.expander("🔗 Cấu hình nguồn dữ liệu từ Google Sheets", expanded=True):
+        st.info("Nhấn nút bên dưới để đồng bộ dữ liệu mới nhất.")
+        
+        if st.button("🔄 Cập nhật toàn bộ dữ liệu từ Link cố định"):
+            with st.spinner("Đang tải và đồng bộ dữ liệu..."):
+                # Sử dụng trực tiếp các biến link cố định đã khai báo ở trên
+                save_to_storage("data_tt", load_data(LINK_TT))
+                save_to_storage("data_dd", load_data(LINK_DD))
+                save_to_storage("data_qt", load_data(LINK_QT))
+                save_to_storage("data_4", load_data(LINK_4))
+                save_to_storage("data_5", load_data(LINK_5))
+                save_to_storage("data_6", load_data(LINK_6))
+                
+                
+                st.success("Đã đồng bộ và lưu dữ liệu mới nhất vào Database!")
+                st.rerun()
+
+    # Hiển thị các Tab
+    t1, t2, t3, t4, t5, t6 = st.tabs(["💬 Điểm tương tác", "📅 Điểm danh", "📊 Điểm quá trình", "🎯 Điểm bài nhóm", "🎯 Điểm bài cá nhân","📈 Thông tin khác"])
+    
+    with t1:
+        if data_tt is not None:
+            st.dataframe(data_tt, use_container_width=True)
+        else:
+            st.info("Chưa có dữ liệu.")
+            
+    with t2:
+        if data_dd is not None:
+            st.dataframe(data_dd, use_container_width=True)
+        else:
+            st.info("Chưa có dữ liệu.")
+            
+    with t3:
+        if data_qt is not None:
+            st.dataframe(data_qt, use_container_width=True)
+        else:
+            st.info("Chưa có dữ liệu.")
+    with t4:
+        if data_4 is not None:
+            st.dataframe(data_4, use_container_width=True)
+    with t5:
+        if data_5 is not None:
+            st.dataframe(data_5, use_container_width=True)
+    with t6:
+        if data_6 is not None:
+            st.dataframe(data_6, use_container_width=True)
+        else:
+            st.info("Chưa có dữ liệu.")
+
+# Sửa lại phần hiển thị để tránh lỗi 'With' object has no attribute 'value'
+if role == "🧑‍🎓 Sinh viên":
+    st.header("🧑‍🎓 Tra cứu kết quả học tập (quá trình)")
+    mssv_input = st.text_input("Nhập Mã số sinh viên của bạn:", placeholder="Ví dụ: 30140240018")
+
+    if mssv_input:
+        mssv_clean = normalize_mssv(mssv_input)
+        
+        # Tải dữ liệu từ DB
+        data_tt = load_from_storage("data_tt")
+        data_dd = load_from_storage("data_dd")
+        data_qt = load_from_storage("data_qt")
+        data_4 = load_from_storage("data_4")
+        data_5 = load_from_storage("data_5")
+        data_6 = load_from_storage("data_6")
+
+        if data_tt is None and data_dd is None and data_qt is None:
+            st.warning("⚠️ Dữ liệu chưa có sẵn. Giảng viên cần vào mục 'Giảng viên' -> Nhập link -> Nhấn 'Cập nhật'.")
+        else:
+            row_tt = find_student_row(data_tt, mssv_clean)
+            row_dd = find_student_row(data_dd, mssv_clean)
+            row_qt = find_student_row(data_qt, mssv_clean)
+            row_4 = find_student_row(data_4, mssv_clean)
+            row_5 = find_student_row(data_5, mssv_clean)
+            row_6 = find_student_row(data_6, mssv_clean)
+            
+            if row_tt is not None or row_dd is not None or row_qt is not None or row_4 is not None:
+                # Tìm tên SV để chào hỏi
+                ref = row_dd if row_dd is not None else (
+                      row_tt if row_tt is not None else (
+                      row_qt if row_qt is not None else (
+                      row_4 if row_4 is not None else (
+                      row_5 if row_5 is not None else row_6))))
+                # Tìm cột Tên linh hoạt
+                row = ref.iloc[0]
+
+                ho_lot = row.get('Họ lót', row.get('Họ lót', ''))
+                ten = row.get('Tên', '')
+                
+                st.success(f"✅ Sinh viên: **{ho_lot} {ten}** | MSSV: **{mssv_clean}**")
+
+                # HIỂN THỊ CÁC TAB ĐIỂM (ĐÃ XUỐNG DÒNG ĐỂ TRÁNH LỖI)
+                if row_tt is not None:
+                    with st.expander("💬 Điểm tương tác", expanded=True):
+                        st.dataframe(row_tt, use_container_width=True, hide_index=True)
+                
+                if row_dd is not None:
+                    with st.expander("📅 Điểm danh & Chuyên cần", expanded=True):
+                        st.dataframe(row_dd, use_container_width=True, hide_index=True)
+                
+                if row_qt is not None:
+                    with st.expander("🎯 Điểm quá trình", expanded=True):
+                        st.dataframe(row_qt, use_container_width=True, hide_index=True)
+                
+                if row_4 is not None:
+                    with st.expander("🎯 Điểm bài nhóm", expanded=True):
+                        st.dataframe(row_4, use_container_width=True, hide_index=True)
+                if row_5 is not None:
+                    with st.expander("🎯 Điểm bài cá nhân", expanded=True):
+                        st.dataframe(row_5, use_container_width=True, hide_index=True)
+                if row_6 is not None:
+                    with st.expander("🎯 Thông tin khác", expanded=True):
+                        st.dataframe(row_6, use_container_width=True, hide_index=True)
+                
+            else:
+                st.error(f"❌ Không tìm thấy dữ liệu cho mã số: {mssv_clean}")
+                st.info("Hãy kiểm tra xem bạn đã nhập đúng mã số chưa, hoặc liên hệ GV để cập nhật danh sách mới nhất.")
+                
+st.sidebar.markdown("---")
+st.sidebar.caption("Dữ liệu được bảo mật trong Database cục bộ.")
