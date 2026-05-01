@@ -13,45 +13,6 @@ import json
 
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Hệ thống Quản lý Điểm QT SV", page_icon="📝", layout="wide")
-DB_FILE = "score_storage.db"
-
-# --- HÀM HỖ TRỢ DATABASE (BỔ SUNG) ---
-def init_db():
-    """Khởi tạo database và bảng lưu trữ"""
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS score_data (
-            key TEXT PRIMARY KEY, 
-            json_content TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-def save_to_storage(key, df):
-    """Lưu DataFrame vào Database dưới dạng JSON"""
-    if df is not None:
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        # ĐỔI THÀNH orient='records' để bảo toàn dữ liệu từng hàng
-        json_str = df.to_json(orient='records', force_ascii=False)
-        c.execute("INSERT OR REPLACE INTO score_data (key, json_content) VALUES (?, ?)", (key, json_str))
-        conn.commit()
-        conn.close()
-
-def load_from_storage(key):
-    """Tải dữ liệu từ Database lên thành DataFrame"""
-    try:
-        conn = sqlite3.connect(DB_FILE)
-        df_json = pd.read_sql_query("SELECT json_content FROM score_data WHERE key=?", conn, params=(key,))
-        conn.close()
-        if not df_json.empty:
-            # ĐỔI THÀNH orient='records'
-            return pd.read_json(df_json.iloc[0]['json_content'], orient='records')
-    except:
-        pass
-    return None
 
 # --- HÀM HỖ TRỢ GOOGLE SHEETS (GIỮ NGUYÊN) ---
 def get_csv_url(gsheet_url):
@@ -64,15 +25,16 @@ def get_csv_url(gsheet_url):
         return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
     except: return gsheet_url
 
+@st.cache_data(ttl=300)  # cache 5 phút
 def load_data(url):
     csv_url = get_csv_url(url)
     try:
         df = pd.read_csv(csv_url, engine='python', on_bad_lines='skip')
         df.columns = [str(c).strip() for c in df.columns]
 
-        # 🔥 THÊM ĐOẠN NÀY
         for col in df.columns:
             df[col] = df[col].astype(str).str.strip()
+
         return df
     except Exception as e:
         st.error(f"Không thể tải dữ liệu: {e}")
@@ -129,7 +91,6 @@ def find_student_row(df, mssv):
 
 
 # --- GIAO DIỆN CHÍNH ---
-init_db()
 
 # PHẦN 1: XỬ LÝ PHÂN QUYỀN & URL PARAMS (GIỮ NGUYÊN)
 query_params = st.query_params
@@ -171,12 +132,12 @@ LINK_5 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJ
 LINK_6 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=250285587#gid=250285587"
 
 # Tải dữ liệu từ DB lên để sử dụng
-data_tt = load_from_storage("data_tt")
-data_dd = load_from_storage("data_dd")
-data_qt = load_from_storage("data_qt")
-data_4 = load_from_storage("data_4")
-data_5 = load_from_storage("data_5")
-data_6 = load_from_storage("data_6")
+data_tt = load_data(LINK_TT)
+data_dd = load_data(LINK_DD)
+data_qt = load_data(LINK_QT)
+data_4  = load_data(LINK_4)
+data_5  = load_data(LINK_5)
+data_6  = load_data(LINK_6)
 
 if role == "👨‍🏫 Giảng viên":
     st.header("👨‍🏫 Quản lý Điểm quá trình (Giảng viên)")
@@ -185,19 +146,10 @@ if role == "👨‍🏫 Giảng viên":
     with st.expander("🔗 Cấu hình nguồn dữ liệu từ Google Sheets", expanded=True):
         st.info("Nhấn nút bên dưới để đồng bộ dữ liệu mới nhất.")
         
-        if st.button("🔄 Cập nhật toàn bộ dữ liệu từ Link cố định"):
-            with st.spinner("Đang tải và đồng bộ dữ liệu..."):
-                # Sử dụng trực tiếp các biến link cố định đã khai báo ở trên
-                save_to_storage("data_tt", load_data(LINK_TT))
-                save_to_storage("data_dd", load_data(LINK_DD))
-                save_to_storage("data_qt", load_data(LINK_QT))
-                save_to_storage("data_4", load_data(LINK_4))
-                save_to_storage("data_5", load_data(LINK_5))
-                save_to_storage("data_6", load_data(LINK_6))
-                
-                
-                st.success("Đã đồng bộ và lưu dữ liệu mới nhất vào Database!")
-                st.rerun()
+        if st.button("🔄 Cập nhật dữ liệu"):
+            load_data.clear()   # clear cache
+            st.success("Đã cập nhật dữ liệu mới!")
+            st.rerun()
 
     # Hiển thị các Tab
     t1, t2, t3, t4, t5, t6 = st.tabs(["💬 Điểm tương tác", "📅 Điểm danh", "📊 Điểm quá trình", "🎯 Điểm bài nhóm", "🎯 Điểm bài cá nhân","📈 Thông tin khác"])
@@ -240,12 +192,12 @@ if role == "🧑‍🎓 Sinh viên":
         mssv_clean = normalize_mssv(mssv_input)
         
         # Tải dữ liệu từ DB
-        data_tt = load_from_storage("data_tt")
-        data_dd = load_from_storage("data_dd")
-        data_qt = load_from_storage("data_qt")
-        data_4 = load_from_storage("data_4")
-        data_5 = load_from_storage("data_5")
-        data_6 = load_from_storage("data_6")
+        data_tt = load_data(LINK_TT)
+        data_dd = load_data(LINK_DD)
+        data_qt = load_data(LINK_QT)
+        data_4  = load_data(LINK_4)
+        data_5  = load_data(LINK_5)
+        data_6  = load_data(LINK_6)
 
         if data_tt is None and data_dd is None and data_qt is None:
             st.warning("⚠️ Dữ liệu chưa có sẵn. Giảng viên cần vào mục 'Giảng viên' -> Nhập link -> Nhấn 'Cập nhật'.")
