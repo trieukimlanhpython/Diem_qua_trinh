@@ -127,8 +127,9 @@ def update_password(mssv, new_pass):
 
     for i, row in enumerate(data, start=2):
         if normalize_mssv(row["MSSV"]) == normalize_mssv(mssv):
-            sheet.update_cell(i, 2, new_pass)  # password
-            sheet.update_cell(i, 3, 0)         # must_change = 0
+            sheet.update_cell(i, 4, new_pass)  # password
+            sheet.update_cell(i, 5, 0)         # must_change
+            
             break
 
 # --- GIAO DIỆN CHÍNH ---
