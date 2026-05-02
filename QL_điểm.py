@@ -343,29 +343,10 @@ def reset_password_by_class(lop_hp, sheet_url):
     def norm(x):
         return str(x).strip().upper().replace(" ", "").replace("\xa0", "")
 
-    # ===== tìm index cột =====
-    def find_col_index(header, targets):
-        def norm(x):
-            return (
-                str(x)
-                .strip()
-                .upper()
-                .replace(" ", "")
-                .replace("\xa0", "")
-            )
-    
-        header_norm = [norm(h) for h in header]
-    
-        for i, h in enumerate(header_norm):
-            for t in targets:
-                if h == t:   # 🔥 match CHÍNH XÁC
-                    return i
-        return None
-
     header = all_data[0]
 
-    lop_hp_idx = find_col_index(header, ["LOPHP"])
-    mssv_idx   = find_col_index(header, ["MASV"])
+    lop_hp_idx = 7
+    mssv_idx   = 0
 
     if lop_hp_idx is None or mssv_idx is None:
         st.error("Không tìm thấy cột Lớp HP hoặc MSSV")
@@ -376,13 +357,15 @@ def reset_password_by_class(lop_hp, sheet_url):
     count = 0
 
     for i, row in enumerate(all_data[1:], start=2):
-        # tránh lỗi thiếu cột
         if len(row) <= max(lop_hp_idx, mssv_idx):
             continue
-
-        if norm(row[lop_hp_idx]) == norm(lop_hp):
+    
+        cell_val = norm(row[lop_hp_idx])
+        target   = norm(lop_hp)
+    
+        if target in cell_val:   # 🔥 fix chính
             mssv = normalize_mssv(row[mssv_idx])
-
+    
             updates.append({
                 "range": f"E{i}",
                 "values": [[mssv]]
@@ -391,7 +374,7 @@ def reset_password_by_class(lop_hp, sheet_url):
                 "range": f"F{i}",
                 "values": [["1"]]
             })
-
+    
             count += 1
 
     # ===== batch update (tránh quota error) =====
