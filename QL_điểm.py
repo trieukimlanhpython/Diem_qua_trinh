@@ -671,11 +671,11 @@ if role == "🧑‍🎓 Sinh viên":
                     else:
                         st.warning("Không có dữ liệu nhóm để hiển thị")
 
-            if st.button("🚪 Đăng xuất"):
-                st.session_state.logged_in = False
-                st.session_state.user = None
-                st.session_state.must_change = "0"
-                st.rerun()
+                if st.button("🚪 Đăng xuất"):
+                    st.session_state.logged_in = False
+                    st.session_state.user = None
+                    st.session_state.must_change = "0"
+                    st.rerun()
         
         else:
             st.error(f"❌ Không tìm thấy dữ liệu cho mã số: {mssv_clean}")
