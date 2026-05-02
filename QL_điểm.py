@@ -610,7 +610,7 @@ if role == "🧑‍🎓 Sinh viên":
                 else:
                     buoi = st.selectbox("Chọn buổi", [
                         "BUỔI 1","BUỔI 2","BUỔI 3","BUỔI 4",
-                        "BUỔI 5","BUỔI 6","BUỔI 8","BUỔI 9"
+                        "BUỔI 5","BUỔI 6","BUỔI 7","BUỔI 8","BUỔI 9"
                     ])
                     
                     
@@ -662,7 +662,7 @@ if role == "🧑‍🎓 Sinh viên":
                         buoi_cols = ["Lớp HP","STT",
                             "Mã SV", "Lớp SV", "Họ lót", "Tên",
                             "BUỔI 1","BUỔI 2","BUỔI 3","BUỔI 4",
-                            "BUỔI 5","BUỔI 6","BUỔI 8","BUỔI 9"
+                            "BUỔI 5","BUỔI 6","BUỔI 7","BUỔI 8","BUỔI 9"
                         ]
                     
                         buoi_cols = [c for c in buoi_cols if c in group_preview.columns]
@@ -670,16 +670,16 @@ if role == "🧑‍🎓 Sinh viên":
                         st.dataframe(group_preview[buoi_cols], use_container_width=True, hide_index=True)
                     else:
                         st.warning("Không có dữ liệu nhóm để hiển thị")
-              
+
+            if st.button("🚪 Đăng xuất"):
+                st.session_state.logged_in = False
+                st.session_state.user = None
+                st.session_state.must_change = "0"
+                st.rerun()
+        
         else:
             st.error(f"❌ Không tìm thấy dữ liệu cho mã số: {mssv_clean}")
             st.info("Hãy kiểm tra xem bạn đã nhập đúng mã số chưa, hoặc liên hệ GV để cập nhật danh sách mới nhất.")
          
-    if st.button("🚪 Đăng xuất"):
-        st.session_state.logged_in = False
-        st.session_state.user = None
-        st.session_state.must_change = "0"
-        st.rerun()
-               
 st.sidebar.markdown("---")
 st.sidebar.caption("Dữ liệu được bảo mật trong Database cục bộ.")
