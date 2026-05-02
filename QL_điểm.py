@@ -326,7 +326,7 @@ def update_password(mssv, new_pass, sheet_url, must_change_value="0"):
         st.error(f"Không tìm thấy MSSV {mssv} trên hệ thống để đổi mật khẩu.")
         st.stop()
 
-def reset_password_by_class(lop_hp, sheet_url):
+def reset_password_by_class(lop_sv, sheet_url):
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -337,28 +337,46 @@ def reset_password_by_class(lop_hp, sheet_url):
     client = gspread.authorize(creds)
 
     sheet = client.open_by_url(sheet_url).sheet1
-    data = sheet.get_all_values()
+    all_data = sheet.get_all_values()
 
-    header = data[0]
-    header_norm = [h.strip().upper() for h in header]
+    header = all_data[0]
 
-    # tìm cột MSSV và Lớp HP
-    mssv_idx = header_norm.index("MÃ SV")
-    lop_idx  = header_norm.index("LỚP HP")
+    def norm(x):
+        return str(x).strip().upper().replace(" ", "").replace("\xa0", "")
 
-    updated = 0
+    header_norm = [norm(h) for h in header]
 
-    for i, row in enumerate(data[1:], start=2):
-        if row[lop_idx].strip() == lop_hp:
+    # tìm cột
+    lop_idx = next((i for i, h in enumerate(header_norm) if "LOP" in h), None)
+    mssv_idx = next((i for i, h in enumerate(header_norm) if "SV" in h), None)
+
+    if lop_idx is None or mssv_idx is None:
+        st.error("Không tìm thấy cột Lớp SV hoặc MSSV")
+        return 0
+
+    updates = []
+    count = 0
+
+    for i, row in enumerate(all_data[1:], start=2):
+        if norm(row[lop_idx]) == norm(lop_sv):
             mssv = normalize_mssv(row[mssv_idx])
 
-            # password = MSSV
-            sheet.update_cell(i, 5, mssv)
-            sheet.update_cell(i, 6, "1")  # bắt đổi pass
+            # cột 5 = password, cột 6 = must_change
+            updates.append({
+                "range": f"E{i}",
+                "values": [[mssv]]
+            })
+            updates.append({
+                "range": f"F{i}",
+                "values": [["1"]]
+            })
 
-            updated += 1
+            count += 1
 
-    return updated
+    if updates:
+        sheet.batch_update(updates)
+
+    return count
 
         
 def update_interaction_sheet(sheet_url, mssv, buoi_col, value):
