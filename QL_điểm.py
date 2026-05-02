@@ -116,7 +116,7 @@ def check_login(user_db, mssv, password):
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-def update_password(mssv, new_pass, sheet_url): # Thêm tham số sheet_url
+def update_password(mssv, new_pass, sheet_url, must_change_value="0"):
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -136,7 +136,7 @@ def update_password(mssv, new_pass, sheet_url): # Thêm tham số sheet_url
         
         if normalize_mssv(row_values[0]) == normalize_mssv(mssv):
             sheet.update_cell(i + 1, 4, str(new_pass))  # Cột 4: Password
-            sheet.update_cell(i + 1, 5, "0")           # Cột 5: must_change
+            sheet.update_cell(i + 1, 5, must_change_value)           # Cột 5: must_change
             found = True
             break
     
@@ -178,7 +178,7 @@ if role == "👨‍🏫 Giảng viên":
     if st.button("Reset"):
         if mssv_reset:
             # Truyền thêm LINK_USER vào cuối
-            update_password(mssv_reset, normalize_mssv(mssv_reset), LINK_USER) 
+            update_password(mssv_reset, normalize_mssv(mssv_reset), LINK_USER, "1") 
             st.success("Đã reset về mặc định (MSSV)")
         else:
             st.warning("Nhập MSSV trước")
@@ -261,7 +261,7 @@ if role == "🧑‍🎓 Sinh viên":
         new_pass = st.text_input("Mật khẩu mới", type="password")
     
         if st.button("Đổi mật khẩu"):
-            update_password(st.session_state.user, new_pass, LINK_USER)
+            update_password(st.session_state.user, new_pass, LINK_USER, "0")
             
             # Cập nhật trạng thái session để thoát khỏi vòng lặp đổi pass
             st.session_state.must_change = "0" 
