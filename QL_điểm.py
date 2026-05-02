@@ -562,7 +562,7 @@ if role == "🧑‍🎓 Sinh viên":
         st.header("🧑‍🎓 Tra cứu kết quả học tập (quá trình)")
 
         mssv_input = st.text_input("Nhập Mã số sinh viên của bạn:", placeholder="Ví dụ: 030140240xxx")
-        password_input = st.text_input("Mật khẩu", type="password")
+        password_input = st.text_input("Mật khẩu", type="password", placeholder="Lần đầu mặc định MSSV: 030140240xxx")
 
         if st.button("Đăng nhập"):
             ok, must_change = check_login(user_db, mssv_input, password_input)
