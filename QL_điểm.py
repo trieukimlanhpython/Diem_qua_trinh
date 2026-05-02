@@ -172,16 +172,6 @@ if role == "👨‍🏫 Giảng viên":
         st.success("Đã làm mới dữ liệu từ Google Sheets")
         st.rerun()
         
-    st.markdown("### 🔁 Reset mật khẩu SV")
-    mssv_reset = st.text_input("Nhập MSSV cần reset")
-    
-    if st.button("Reset"):
-        if mssv_reset:
-            # Truyền thêm LINK_USER vào cuối
-            update_password(mssv_reset, normalize_mssv(mssv_reset), LINK_USER, "1") 
-            st.success("Đã reset về mặc định (MSSV)")
-        else:
-            st.warning("Nhập MSSV trước")
 # PHẦN 3: GIAO DIỆN CHÍNH
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -202,7 +192,7 @@ if role == "👨‍🏫 Giảng viên":
     st.markdown("##### === Triệu Kim Lanh ===")
 
     # Hiển thị các Tab
-    t1, t2, t3, t4, t5, t6 = st.tabs(["💬 Điểm tương tác", "📅 Điểm danh", "🎯 Điểm bài nhóm", "🎯 Điểm bài cá nhân","📊 Điểm quá trình", "📈 Thông tin khác"])
+    t1, t2, t3, t4, t5, t6, t7 = st.tabs(["💬 Điểm tương tác", "📅 Điểm danh", "🎯 Điểm bài nhóm", "🎯 Điểm bài cá nhân","📊 Điểm quá trình", "📈 Thông tin khác","👨‍🏫 Admin_Password"])
     
     with t1:
         if data_tt is not None:
@@ -230,6 +220,21 @@ if role == "👨‍🏫 Giảng viên":
     with t6:
         if data_6 is not None:
             st.dataframe(data_6, use_container_width=True)
+        else:
+            st.info("Chưa có dữ liệu.")
+    with t7:
+        if user_db is not None:
+            st.markdown("### 🔁 Reset mật khẩu SV")
+            mssv_reset = st.text_input("Nhập MSSV cần reset")
+            
+            if st.button("Reset"):
+                if mssv_reset:
+                    # Truyền thêm LINK_USER vào cuối
+                    update_password(mssv_reset, normalize_mssv(mssv_reset), LINK_USER, "1") 
+                    st.success("Đã reset về mặc định (MSSV)")
+                else:
+                    st.warning("Nhập MSSV trước")
+            st.dataframe(user_db, use_container_width=True)
         else:
             st.info("Chưa có dữ liệu.")
 
