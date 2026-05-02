@@ -317,7 +317,7 @@ def update_password(mssv, new_pass, sheet_url, must_change_value="0"):
         if i == 0: continue # Bỏ qua dòng tiêu đề
         
         if normalize_mssv(row_values[0]) == normalize_mssv(mssv):
-            sheet.update_cell(i + 1, 5, str(new_pass))  # Cột 5: Password
+            sheet.update_cell(i + 1, 5, f"'{new_pass}")  # Cột 5: Password
             sheet.update_cell(i + 1, 6, must_change_value)           # Cột 6: must_change
             found = True
             break
