@@ -182,7 +182,7 @@ if role == "👨‍🏫 Giảng viên":
 # Sửa lại phần hiển thị để tránh lỗi 'With' object has no attribute 'value'
 if role == "🧑‍🎓 Sinh viên":
     st.header("🧑‍🎓 Tra cứu kết quả học tập (quá trình)")
-    mssv_input = st.text_input("Nhập Mã số sinh viên của bạn:", placeholder="Ví dụ: 30140240018")
+    mssv_input = st.text_input("Nhập Mã số sinh viên của bạn:", placeholder="Ví dụ: 030140240xxx")
 
     if mssv_input:
         mssv_clean = normalize_mssv(mssv_input)
