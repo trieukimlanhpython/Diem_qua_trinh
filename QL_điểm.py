@@ -262,14 +262,16 @@ if role == "🧑‍🎓 Sinh viên":
         if st.button("Đổi mật khẩu"):
             update_password(st.session_state.user, new_pass)
             
-            # QUAN TRỌNG: Xóa cache ngay lập tức để ép app tải lại Sheet
+            # Cập nhật trạng thái session để thoát khỏi vòng lặp đổi pass
+            st.session_state.must_change = "0" 
+            
+            # Xóa cache để lần sau load_data lấy dữ liệu mới từ Sheet
             st.cache_data.clear() 
             
-            st.success("Đã đổi mật khẩu thành công!")
+            st.success("✅ Đã đổi mật khẩu thành công! Đang đăng nhập...")
             
-            # Đợi 1 chút rồi load lại trang
             import time
-            time.sleep(1)
+            time.sleep(1.5)
             st.rerun()
     
         st.stop()
