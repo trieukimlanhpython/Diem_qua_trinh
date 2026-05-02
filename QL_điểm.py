@@ -344,25 +344,34 @@ def reset_password_by_class(lop_hp, sheet_url):
         return str(x).strip().upper().replace(" ", "").replace("\xa0", "")
 
     # ===== tìm index cột =====
-    def find_col_index(header, keywords):
+    def find_col_index(header, targets):
+        def norm(x):
+            return (
+                str(x)
+                .strip()
+                .upper()
+                .replace(" ", "")
+                .replace("\xa0", "")
+            )
+    
         header_norm = [norm(h) for h in header]
-
+    
         for i, h in enumerate(header_norm):
-            for kw in keywords:
-                if kw in h:
+            for t in targets:
+                if h == t:   # 🔥 match CHÍNH XÁC
                     return i
         return None
 
     header = all_data[0]
 
     lop_hp_idx = find_col_index(header, ["LOPHP"])
-    mssv_idx   = find_col_index(header, ["MASV", "MSSV"])
+    mssv_idx   = find_col_index(header, ["MASV"])
 
     if lop_hp_idx is None or mssv_idx is None:
         st.error("Không tìm thấy cột Lớp HP hoặc MSSV")
         st.write("Header thực tế:", header)
         return 0
-
+    st.write("Header normalize:", [norm(h) for h in header])
     updates = []
     count = 0
 
