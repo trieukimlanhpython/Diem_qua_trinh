@@ -29,7 +29,7 @@ def get_csv_url(gsheet_url):
 def load_data(url):
     csv_url = get_csv_url(url)
     try:
-        df = pd.read_csv(csv_url, engine='python', on_bad_lines='skip')
+        df = pd.read_csv(csv_url, dtype=str, engine='python', on_bad_lines='skip')
         df.columns = [str(c).strip() for c in df.columns]
 
         for col in df.columns:
@@ -49,9 +49,6 @@ def normalize_mssv(x):
     # bỏ .0 nếu có
     if x.endswith(".0"):
         x = x[:-2]
-    
-    # 🔥 QUAN TRỌNG: bỏ số 0 đầu
-    x = x.lstrip("0")
     
     return x
 
@@ -80,11 +77,10 @@ def find_student_row(df, mssv):
         st.error("❌ Không tìm thấy cột MSSV")
         return None
 
+    col_series = df[id_col].apply(normalize_mssv)
     target = normalize_mssv(mssv)
-
-    df[id_col] = df[id_col].apply(normalize_mssv)
-
-    res = df[df[id_col] == target]
+    
+    res = df[col_series == target]
 
     return res if not res.empty else None
 
