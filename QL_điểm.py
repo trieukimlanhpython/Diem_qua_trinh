@@ -550,7 +550,16 @@ if role == "🧑‍🎓 Sinh viên":
             ten = row.get('Tên', '')
             
             st.success(f"✅ Sinh viên: **{ho_lot} {ten}** | MSSV: **{mssv_clean}**")
-            
+
+            col1, col2 = st.columns([8, 2])
+
+            with col2:
+                if st.button("🚪 Đăng xuất"):
+                    st.session_state.logged_in = False
+                    st.session_state.user = None
+                    st.session_state.must_change = "0"
+                    st.rerun()
+        
             mode_sv = st.radio(
                 "Chọn chức năng",
                 ["📊 Xem điểm quá trình", "🧑‍🎓 Nhập tương tác"]
@@ -671,12 +680,6 @@ if role == "🧑‍🎓 Sinh viên":
                     else:
                         st.warning("Không có dữ liệu nhóm để hiển thị")
 
-                if st.button("🚪 Đăng xuất"):
-                    st.session_state.logged_in = False
-                    st.session_state.user = None
-                    st.session_state.must_change = "0"
-                    st.rerun()
-        
         else:
             st.error(f"❌ Không tìm thấy dữ liệu cho mã số: {mssv_clean}")
             st.info("Hãy kiểm tra xem bạn đã nhập đúng mã số chưa, hoặc liên hệ GV để cập nhật danh sách mới nhất.")
