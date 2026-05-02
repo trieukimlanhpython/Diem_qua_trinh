@@ -148,7 +148,7 @@ if role == "👨‍🏫 Giảng viên":
             st.rerun()
 
     # Hiển thị các Tab
-    t1, t2, t3, t4, t5, t6 = st.tabs(["💬 Điểm tương tác", "📅 Điểm danh", "📊 Điểm quá trình", "🎯 Điểm bài nhóm", "🎯 Điểm bài cá nhân","📈 Thông tin khác"])
+    t1, t2, t3, t4, t5, t6 = st.tabs(["💬 Điểm tương tác", "📅 Điểm danh", "🎯 Điểm bài nhóm", "🎯 Điểm bài cá nhân","📊 Điểm quá trình", "📈 Thông tin khác"])
     
     with t1:
         if data_tt is not None:
@@ -163,16 +163,16 @@ if role == "👨‍🏫 Giảng viên":
             st.info("Chưa có dữ liệu.")
             
     with t3:
-        if data_qt is not None:
-            st.dataframe(data_qt, use_container_width=True)
+        if data_4 is not None:
+            st.dataframe(data_4, use_container_width=True)
         else:
             st.info("Chưa có dữ liệu.")
     with t4:
-        if data_4 is not None:
-            st.dataframe(data_4, use_container_width=True)
-    with t5:
         if data_5 is not None:
             st.dataframe(data_5, use_container_width=True)
+    with t5:
+        if data_qt is not None:
+            st.dataframe(data_qt, use_container_width=True)
     with t6:
         if data_6 is not None:
             st.dataframe(data_6, use_container_width=True)
@@ -229,16 +229,16 @@ if role == "🧑‍🎓 Sinh viên":
                     with st.expander("📅 Điểm danh & Chuyên cần", expanded=True):
                         st.dataframe(row_dd, use_container_width=True, hide_index=True)
                 
-                if row_qt is not None:
-                    with st.expander("🎯 Điểm quá trình", expanded=True):
-                        st.dataframe(row_qt, use_container_width=True, hide_index=True)
-                
                 if row_4 is not None:
                     with st.expander("🎯 Điểm bài nhóm", expanded=True):
                         st.dataframe(row_4, use_container_width=True, hide_index=True)
                 if row_5 is not None:
                     with st.expander("🎯 Điểm bài cá nhân", expanded=True):
                         st.dataframe(row_5, use_container_width=True, hide_index=True)
+                if row_qt is not None:
+                    with st.expander("🎯 Điểm quá trình", expanded=True):
+                        st.dataframe(row_qt, use_container_width=True, hide_index=True)
+                
                 if row_6 is not None:
                     with st.expander("🎯 Thông tin khác", expanded=True):
                         st.dataframe(row_6, use_container_width=True, hide_index=True)
