@@ -106,13 +106,17 @@ def check_login(user_db, mssv, password):
     return False, None
 
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
 def update_password(mssv, new_pass):
-    scope = ["https://spreadsheets.google.com/feeds",
-             "https://www.googleapis.com/auth/drive"]
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
 
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(
+        st.secrets["gcp_service_account"],
+        scope
+    )
+
     client = gspread.authorize(creds)
 
     sheet = client.open_by_url(LINK_USER).sheet1
@@ -120,8 +124,8 @@ def update_password(mssv, new_pass):
 
     for i, row in enumerate(data, start=2):
         if normalize_mssv(row["MSSV"]) == normalize_mssv(mssv):
-            sheet.update_cell(i, 2, new_pass)      # password
-            sheet.update_cell(i, 3, 0)             # must_change = 0
+            sheet.update_cell(i, 2, new_pass)
+            sheet.update_cell(i, 3, 0)
             break
 
 # --- GIAO DIỆN CHÍNH ---
