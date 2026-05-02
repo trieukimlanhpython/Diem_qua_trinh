@@ -109,28 +109,33 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 def update_password(mssv, new_pass):
     scope = [
-        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-
     creds_dict = dict(st.secrets["gcp_service_account"])
-
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(
-        creds_dict,
-        scope
-    )
-
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
 
     sheet = client.open_by_url(LINK_USER).sheet1
-    data = sheet.get_all_records()
-
-    for i, row in enumerate(data, start=2):
-        if normalize_mssv(row["MSSV"]) == normalize_mssv(mssv):
-            sheet.update_cell(i, 4, new_pass)  # password
-            sheet.update_cell(i, 5, 0)         # must_change
-            
+    
+    # Lấy toàn bộ giá trị (bao gồm cả tiêu đề) để tính số hàng chính xác
+    all_data = sheet.get_all_values() 
+    
+    # Giả định cột MSSV là cột 1 (index 0). Nếu là cột khác, hãy sửa số 0 ở [0]
+    found = False
+    for i, row_values in enumerate(all_data):
+        # i + 1 vì Google Sheet bắt đầu từ dòng 1
+        if i == 0: continue # Bỏ qua dòng tiêu đề
+        
+        if normalize_mssv(row_values[0]) == normalize_mssv(mssv):
+            sheet.update_cell(i + 1, 4, str(new_pass))  # Cột 4: Password
+            sheet.update_cell(i + 1, 5, "0")           # Cột 5: must_change
+            found = True
             break
+    
+    if not found:
+        st.error(f"Không tìm thấy MSSV {mssv} trên hệ thống để đổi mật khẩu.")
+        st.stop()
 
 # --- GIAO DIỆN CHÍNH ---
 
