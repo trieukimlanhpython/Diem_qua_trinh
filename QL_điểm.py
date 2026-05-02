@@ -109,11 +109,9 @@ if role == "👨‍🏫 Giảng viên":
         st.stop()
 
     st.sidebar.success("✅ Đã xác thực")
-    if st.sidebar.button("🗑️ Xóa toàn bộ Database"):
-        conn = sqlite3.connect(DB_FILE)
-        conn.execute("DELETE FROM score_data")
-        conn.commit()
-        conn.close()
+    if st.sidebar.button("🔄 Làm mới dữ liệu"):
+        load_data.clear()
+        st.success("Đã làm mới dữ liệu từ Google Sheets")
         st.rerun()
 
 # PHẦN 3: GIAO DIỆN CHÍNH
@@ -138,14 +136,6 @@ data_6  = load_data(LINK_6)
 if role == "👨‍🏫 Giảng viên":
     st.header("👨‍🏫 Quản lý Điểm quá trình (Giảng viên)")
     st.markdown("##### === Triệu Kim Lanh ===")
-    
-    with st.expander("🔗 Cấu hình nguồn dữ liệu từ Google Sheets", expanded=True):
-        st.info("Nhấn nút bên dưới để đồng bộ dữ liệu mới nhất.")
-        
-        if st.button("🔄 Cập nhật dữ liệu"):
-            load_data.clear()   # clear cache
-            st.success("Đã cập nhật dữ liệu mới!")
-            st.rerun()
 
     # Hiển thị các Tab
     t1, t2, t3, t4, t5, t6 = st.tabs(["💬 Điểm tương tác", "📅 Điểm danh", "🎯 Điểm bài nhóm", "🎯 Điểm bài cá nhân","📊 Điểm quá trình", "📈 Thông tin khác"])
