@@ -339,33 +339,53 @@ def reset_password_by_class(lop_hp, sheet_url):
     sheet = client.open_by_url(sheet_url).sheet1
     all_data = sheet.get_all_values()
 
-    header = all_data[0]
-
+    # ===== normalize dùng chung =====
     def norm(x):
         return str(x).strip().upper().replace(" ", "").replace("\xa0", "")
 
-    header_norm = [norm(h) for h in header]
+    # ===== tìm index cột =====
+    def find_col_index(header, keywords):
+        header_norm = [norm(h) for h in header]
 
-    # ✅ tìm đúng cột
-    lop_hp_idx = next((i for i, h in enumerate(header_norm) if "LOPHP" in h), None)
-    mssv_idx   = next((i for i, h in enumerate(header_norm) if "MASV" in h or "MSSV" in h or "SV" in h), None)
+        for i, h in enumerate(header_norm):
+            for kw in keywords:
+                if kw in h:
+                    return i
+        return None
+
+    header = all_data[0]
+
+    lop_hp_idx = find_col_index(header, ["LOPHP"])
+    mssv_idx   = find_col_index(header, ["MASV", "MSSV"])
 
     if lop_hp_idx is None or mssv_idx is None:
         st.error("Không tìm thấy cột Lớp HP hoặc MSSV")
+        st.write("Header thực tế:", header)
         return 0
 
     updates = []
     count = 0
 
     for i, row in enumerate(all_data[1:], start=2):
+        # tránh lỗi thiếu cột
+        if len(row) <= max(lop_hp_idx, mssv_idx):
+            continue
+
         if norm(row[lop_hp_idx]) == norm(lop_hp):
             mssv = normalize_mssv(row[mssv_idx])
 
-            updates.append({"range": f"E{i}", "values": [[mssv]]})
-            updates.append({"range": f"F{i}", "values": [["1"]]})
+            updates.append({
+                "range": f"E{i}",
+                "values": [[mssv]]
+            })
+            updates.append({
+                "range": f"F{i}",
+                "values": [["1"]]
+            })
 
             count += 1
 
+    # ===== batch update (tránh quota error) =====
     if updates:
         sheet.batch_update(updates)
 
