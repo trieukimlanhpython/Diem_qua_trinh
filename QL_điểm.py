@@ -325,7 +325,41 @@ def update_password(mssv, new_pass, sheet_url, must_change_value="0"):
     if not found:
         st.error(f"Không tìm thấy MSSV {mssv} trên hệ thống để đổi mật khẩu.")
         st.stop()
-        
+
+def reset_password_by_class(lop_hp, sheet_url):
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+
+    creds_dict = get_creds()
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open_by_url(sheet_url).sheet1
+    data = sheet.get_all_values()
+
+    header = data[0]
+    header_norm = [h.strip().upper() for h in header]
+
+    # tìm cột MSSV và Lớp HP
+    mssv_idx = header_norm.index("MÃ SV")
+    lop_idx  = header_norm.index("LỚP HP")
+
+    updated = 0
+
+    for i, row in enumerate(data[1:], start=2):
+        if row[lop_idx].strip() == lop_hp:
+            mssv = normalize_mssv(row[mssv_idx])
+
+            # password = MSSV
+            sheet.update_cell(i, 5, mssv)
+            sheet.update_cell(i, 6, "1")  # bắt đổi pass
+
+            updated += 1
+
+    return updated
+
         
 def update_interaction_sheet(sheet_url, mssv, buoi_col, value):
     scope = [
@@ -457,16 +491,44 @@ if role == "👨‍🏫 Giảng viên":
     with t7:
         if user_db is not None:
             st.markdown("### 🔁 Reset mật khẩu SV")
-            mssv_reset = st.text_input("Nhập MSSV cần reset")
-            
-            if st.button("Reset"):
-                if mssv_reset:
-                    # Truyền thêm LINK_USER vào cuối
-                    update_password(mssv_reset, normalize_mssv(mssv_reset), LINK_USER, "1") 
-                    st.success("Đã reset về mặc định (MSSV)")
+    
+            tab1, tab2 = st.tabs(["Reset từng SV", "Reset theo lớp"])
+    
+            # ===== RESET 1 SV =====
+            with tab1:
+                mssv_reset = st.text_input("Nhập MSSV cần reset")
+    
+                if st.button("Reset MSSV"):
+                    if mssv_reset:
+                        update_password(
+                            mssv_reset,
+                            normalize_mssv(mssv_reset),
+                            LINK_USER,
+                            "1"
+                        )
+                        st.success("Đã reset về mặc định (MSSV)")
+                    else:
+                        st.warning("Nhập MSSV trước")
+    
+            # ===== RESET THEO LỚP =====
+            with tab2:
+                # lấy danh sách lớp HP
+                if "Lớp HP" in user_db.columns:
+                    lop_list = sorted(user_db["Lớp HP"].dropna().unique())
                 else:
-                    st.warning("Nhập MSSV trước")
+                    lop_list = []
+    
+                selected_lop = st.selectbox("Chọn lớp HP", lop_list)
+    
+                if st.button("Reset toàn bộ lớp"):
+                    if selected_lop:
+                        count = reset_password_by_class(selected_lop, LINK_USER)
+                        st.success(f"Đã reset {count} sinh viên của lớp {selected_lop}")
+                    else:
+                        st.warning("Chọn lớp trước")
+    
             st.dataframe(user_db, use_container_width=True)
+    
         else:
             st.info("Chưa có dữ liệu.")
 
