@@ -347,12 +347,6 @@ def reset_password_by_class(lop_hp, sheet_url):
 
     lop_hp_idx = 7
     mssv_idx   = 0
-
-    if lop_hp_idx is None or mssv_idx is None:
-        st.error("Không tìm thấy cột Lớp HP hoặc MSSV")
-        st.write("Header thực tế:", header)
-        return 0
-    st.write("Header normalize:", [norm(h) for h in header])
     updates = []
     count = 0
 
