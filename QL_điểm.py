@@ -153,14 +153,14 @@ if role == "👨‍🏫 Giảng viên":
         st.rerun()
         
     st.markdown("### 🔁 Reset mật khẩu SV")
-        mssv_reset = st.text_input("Nhập MSSV cần reset")
-        
-        if st.button("Reset"):
-            if mssv_reset:
-                update_password(mssv_reset, normalize_mssv(mssv_reset))
-                st.success("Đã reset về mặc định (MSSV)")
-            else:
-                st.warning("Nhập MSSV trước")
+    mssv_reset = st.text_input("Nhập MSSV cần reset")
+    
+    if st.button("Reset"):
+        if mssv_reset:
+            update_password(mssv_reset, normalize_mssv(mssv_reset))
+            st.success("Đã reset về mặc định (MSSV)")
+        else:
+            st.warning("Nhập MSSV trước")
 # PHẦN 3: GIAO DIỆN CHÍNH
 # Tải dữ liệu từ DB lên để sử dụng
 # PHẦN 3: GIAO DIỆN CHÍNH
