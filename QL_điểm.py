@@ -113,8 +113,10 @@ def update_password(mssv, new_pass):
         "https://www.googleapis.com/auth/drive"
     ]
 
+    creds_dict = dict(st.secrets["gcp_service_account"])
+
     creds = ServiceAccountCredentials.from_json_keyfile_dict(
-        st.secrets["gcp_service_account"],
+        creds_dict,
         scope
     )
 
@@ -125,8 +127,8 @@ def update_password(mssv, new_pass):
 
     for i, row in enumerate(data, start=2):
         if normalize_mssv(row["MSSV"]) == normalize_mssv(mssv):
-            sheet.update_cell(i, 2, new_pass)
-            sheet.update_cell(i, 3, 0)
+            sheet.update_cell(i, 2, new_pass)  # password
+            sheet.update_cell(i, 3, 0)         # must_change = 0
             break
 
 # --- GIAO DIỆN CHÍNH ---
