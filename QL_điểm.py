@@ -535,13 +535,19 @@ if role == "👨‍🏫 Giảng viên":
                     lop_list = sorted(user_db["Lớp HP"].dropna().unique())
                 else:
                     lop_list = []
+
+                if "selected_lop" not in st.session_state:
+                    st.session_state.selected_lop = None
+                selected_lop = st.selectbox(
+                    "Chọn lớp để reset",
+                    lop_list,
+                    key="selected_lop"
+                )
     
-                selected_lop = st.selectbox("Chọn lớp HP", lop_list)
-    
-                if st.button("Reset toàn bộ lớp"):
-                    if selected_lop:
-                        count = reset_password_by_class(selected_lop, LINK_USER)
-                        st.success(f"Đã reset {count} sinh viên của lớp {selected_lop}")
+                if st.button("🔁 Reset theo lớp"):
+                    if st.session_state.selected_lop:
+                        count = reset_password_by_class(st.session_state.selected_lop, LINK_USER)
+                        st.success(f"Đã reset {count} sinh viên lớp {st.session_state.selected_lop}")
                     else:
                         st.warning("Chọn lớp trước")
     
