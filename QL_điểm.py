@@ -15,6 +15,15 @@ import json
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Hệ thống Quản lý Điểm QT SV", page_icon="📝", layout="wide")
 
+# --- CẤU HÌNH LINK CỐ ĐỊNH TẠI ĐÂY ---
+LINK_TT = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=955190676#gid=955190676"
+LINK_DD = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=246423748#gid=246423748"
+LINK_QT = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=347549665#gid=347549665"
+LINK_4 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1724010901#gid=1724010901"
+LINK_5 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1112987460#gid=1112987460"
+LINK_6 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=250285587#gid=250285587"
+LINK_USER = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1406726171#gid=1406726171"
+
 # --- HÀM HỖ TRỢ GOOGLE SHEETS (GIỮ NGUYÊN) ---
 def get_csv_url(gsheet_url):
     try:
@@ -107,7 +116,7 @@ def check_login(user_db, mssv, password):
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-def update_password(mssv, new_pass):
+def update_password(mssv, new_pass, sheet_url): # Thêm tham số sheet_url
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -115,9 +124,7 @@ def update_password(mssv, new_pass):
     creds_dict = dict(st.secrets["gcp_service_account"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-
-    sheet = client.open_by_url(LINK_USER).sheet1
-    
+    sheet = client.open_by_url(sheet_url).sheet1 # Dùng tham số truyền vào
     # Lấy toàn bộ giá trị (bao gồm cả tiêu đề) để tính số hàng chính xác
     all_data = sheet.get_all_values() 
     
@@ -170,24 +177,12 @@ if role == "👨‍🏫 Giảng viên":
     
     if st.button("Reset"):
         if mssv_reset:
-            update_password(mssv_reset, normalize_mssv(mssv_reset))
+            # Truyền thêm LINK_USER vào cuối
+            update_password(mssv_reset, normalize_mssv(mssv_reset), LINK_USER) 
             st.success("Đã reset về mặc định (MSSV)")
         else:
             st.warning("Nhập MSSV trước")
 # PHẦN 3: GIAO DIỆN CHÍNH
-# Tải dữ liệu từ DB lên để sử dụng
-# PHẦN 3: GIAO DIỆN CHÍNH
-# --- CẤU HÌNH LINK CỐ ĐỊNH TẠI ĐÂY ---
-LINK_TT = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=955190676#gid=955190676"
-LINK_DD = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=246423748#gid=246423748"
-LINK_QT = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=347549665#gid=347549665"
-LINK_4 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1724010901#gid=1724010901"
-LINK_5 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1112987460#gid=1112987460"
-LINK_6 = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=250285587#gid=250285587"
-LINK_USER = "https://docs.google.com/spreadsheets/d/19VCWKBdA9WwOv8LzZCe2RQJTeO-5YJGixMZc1OeiWFY/edit?gid=1406726171#gid=1406726171"
-
-user_db = load_data(LINK_USER)
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.user = None
@@ -200,6 +195,7 @@ data_qt = load_data(LINK_QT)
 data_4  = load_data(LINK_4)
 data_5  = load_data(LINK_5)
 data_6  = load_data(LINK_6)
+user_db = load_data(LINK_USER)
 
 if role == "👨‍🏫 Giảng viên":
     st.header("👨‍🏫 Quản lý Điểm quá trình (Giảng viên)")
@@ -265,7 +261,7 @@ if role == "🧑‍🎓 Sinh viên":
         new_pass = st.text_input("Mật khẩu mới", type="password")
     
         if st.button("Đổi mật khẩu"):
-            update_password(st.session_state.user, new_pass)
+            update_password(st.session_state.user, new_pass, LINK_USER)
             
             # Cập nhật trạng thái session để thoát khỏi vòng lặp đổi pass
             st.session_state.must_change = "0" 
